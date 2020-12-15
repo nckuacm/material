@@ -2,6 +2,8 @@
 tags: 成大高階競技程式設計 2020, ys
 ---
 
+:+1: [2020 競技程設教材 HackMD Book](https://hackmd.io/@nckuacm/ryLIV6BYI) :+1: 
+
 # 2020 Week 9: Data Structures
 本篇將介紹些 CP 值較高的資料結構
 > 其中 C 代表的是 coding 複雜度，~~或把 CP 譯作競程~~
@@ -163,8 +165,8 @@ void update(node* u, int L, int R, int i, int d) {
   if(R-L == 1) return; // 葉節點
   
   int M = (L+R) / 2;
-  update(u->lc, i, d, L, M);
-  update(u->rc, i, d, M, R);
+  update(u->lc, L, M, i, d);
+  update(u->rc, M, R, i, d);
 }
 ```
 
@@ -258,14 +260,14 @@ edge[color=black]
 詢問 $[2, 4)$ 的值，則區間總和為 $24$
 
 可採用前面提的"單點更新/區間查詢"線段樹，
-更新區間內的所有數，可對每數都單點更新，但總複雜度為 $O(Q\cdot N\log_2 N)$
+欲更新區間內所有數，對**每數都單點更新**，但總複雜度為 $O(Q\cdot N\log_2 N)$
 
-也可這樣寫：
+同理，這樣寫也可以做到**區間更新**：
 ```cpp
 void update(node* u, int L, int R, int qL, int qR, int d) {
   if(R <= qL || qR <= L) return;
   if(R-L == 1) {
-    if(qL <= L && R <= qR) u->sum += d; // 葉節點在更新區間內
+    u->sum += d; // 更新該單點
     return;
   }
   
@@ -276,10 +278,37 @@ void update(node* u, int L, int R, int qL, int qR, int d) {
   u->sum = u->lc->sum + u->rc->sum;
 }
 ```
+以 $a = (1, 15, 3, 7, 4)$ 為例將 $[2, 6)$ 所有數加上 $3$：
+```graphviz
+digraph {
+edge[color=maroon]
+  1 -> 2;
+  1 -> 3;
+edge[color=black]
+  2 -> 4;
+edge[color=maroon]
+  2 -> 5;
+  3 -> 6;
+  3 -> 7;
+  7 -> 8;
+  7 -> 9;
+  
+  1[label="[1, 6), 42", style="filled", fillcolor=maroon1]
+  2[label="[1, 3), 19", style="filled", fillcolor=maroon1]
+  3[label="[3, 6), 23", style="filled", fillcolor=maroon1]
+  4[label="[1, 2), 1"]
+  5[label="[2, 3), 18", style="filled", fillcolor=maroon1]
+  6[label="[3, 4), 6", style="filled", fillcolor=maroon1]
+  7[label="[4, 6), 17", style="filled", fillcolor=maroon1]
+  8[label="[4, 5), 10", style="filled", fillcolor=maroon1]
+  9[label="[5, 6), 7", style="filled", fillcolor=maroon1]
+}
+```
+
 可是複雜度仍然為 $O(Q\cdot N\log_2 N)$
-
+<!-- 
 > 這甚至比暴力的枚舉區間的數還來得差 :-1:
-
+ -->
 
 ### Lazy tag
 顧名思義，就是懶
@@ -292,7 +321,7 @@ void update(node* u, int L, int R, int qL, int qR, int d) {
 
 
 ### Node
-線段樹的節點保存該區間的解，以及左右子節點的位置
+節點保存該區間的解及 tag，以及左右子節點的位置
 ```cpp
 struct node {
   int sum, tag;
@@ -354,7 +383,7 @@ edge[color=black]
   
   1[label="[1, 6), 42", style="filled", fillcolor=maroon1]
   2[label="[1, 3), 19", style="filled", fillcolor=maroon1]
-  3[label="[3, 6), 17", xlabel="3", style="filled", fillcolor=maroon1]
+  3[label="[3, 6), 23", xlabel="3", style="filled", fillcolor=maroon1]
   4[label="[1, 2), 1"]
   5[label="[2, 3), 18", xlabel="3", style="filled", fillcolor=maroon1]
   6[label="[3, 4), 3"]
@@ -364,6 +393,7 @@ edge[color=black]
 }
 ```
 其中左上角的值代表 tag 值。
+> 與沒有 lazy tag 的區間更新相比，走訪的區間少了許多
 
 
 ### Query
@@ -397,15 +427,16 @@ edge[color=black]
   
   1[label="[1, 6), 42"]
   2[label="[1, 3), 19"]
-  3[label="[3, 6), 17"]
+  3[label="[3, 6), 23"]
   4[label="[1, 2), 1"]
   5[label="[2, 3), 18", xlabel="3", style="filled", fillcolor=yellow]
   6[label="[3, 4), 6", xlabel="3", style="filled", fillcolor=yellow]
-  7[label="[4, 6), 14", xlabel="3"]
+  7[label="[4, 6), 17", xlabel="3"]
   8[label="[4, 5), 7"]
   9[label="[5, 6), 4"]
 }
 ```
+觀察到，在查詢過程中會將 tag 往下 push 給子區間
 
 #### 練習：
 [POJ 3468 A Simple Problem with Integers](http://poj.org/problem?id=3468)
@@ -518,12 +549,11 @@ int pre(int p) {
 void update(int p, int d)
   { for(; p <= N; p+=p&-p) BIT[p] += d; }
 ```
-`update(L, d)` 及 `update(R+1, -d)` 就能完成**區間更新**了
+做 `update(L, d)` 及 `update(R+1, -d)` 就能完成**區間更新**了
 
 ### Query
 
-根據差分定義推得 $a_i = \sum\limits_{j=1}^i b_j$
-所以直接的利用**區間查詢**
+根據差分定義推得 $a_i = \sum\limits_{j=1}^i b_j$，所以可利用**區間查詢**
 ```cpp
 int pre(int p) {
   int sum = 0;
@@ -531,7 +561,7 @@ int pre(int p) {
   return sum;
 }
 ```
-`pre(i)` 就能完成 $a_i$ **單點查詢**了
+做 `pre(i)` 能**單點查詢** $a_i$ 的值
 
 
 ## 區間更新/區間查詢
